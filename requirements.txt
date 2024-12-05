@@ -1,0 +1,6 @@
+streamlit==latest
+pandas==latest
+numpy==latest
+matplotlib==latest
+seaborn==latest
+scipy==latest
