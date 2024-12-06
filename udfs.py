@@ -423,7 +423,7 @@ def visualize_chain_ladder(triangle):
     ultimate_claim_amount = projected_triangle.sum(axis=1)
     plt.figure(figsize=(10, 6))
     plt.plot(ultimate_claim_amount.index, ultimate_claim_amount.values, marker='o', linestyle='-', color='teal')
-    plt.title("Ultimate Claim Amount by Accident Year")
+    plt.title("Ultimate Claims Amount by Accident Year (Chain Ladder Method)")
     plt.xlabel("Accident Year")
     plt.ylabel("Ultimate Claim Amount")
     st.pyplot(plt)
@@ -459,7 +459,7 @@ def visualize_bf_method(triangle):
     # Bar chart for ultimate claims
     plt.figure(figsize=(10, 6))
     sns.barplot(x=bf_ultimate_claims.index, y=bf_ultimate_claims.values, palette="Greens_d",hue=bf_ultimate_claims.values)
-    plt.title("Ultimate Claims by Accident Year")
+    plt.title("Ultimate Claims Amount by Accident Year (BF Method)")
     plt.xlabel("Accident Year")
     plt.ylabel("Ultimate Claims Amount")
     st.pyplot(plt)
@@ -504,7 +504,7 @@ def visualize_loss_ratio(df):
     # Bar chart for expected claims
     plt.figure(figsize=(10, 6))
     sns.barplot(x=expected_claims.index, y=expected_claims.values, palette="Purples_d",hue=expected_claims.values)
-    plt.title("Expected Claims by Accident Year")
+    plt.title("Ultimate Claims Amount by Accident Year (Loss Ratio Method)")
     plt.xlabel("Accident Year")
     plt.ylabel("Expected Claims Amount")
     st.pyplot(plt)
