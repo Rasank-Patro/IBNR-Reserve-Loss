@@ -493,7 +493,7 @@ def visualize_loss_ratio(df):
     expected_claims = total_earned_premiums * loss_ratios
     loss_ratio_reserves = expected_claims - incurred_claims
 
-    # Bar chart for loss ratios
+    # Bar chart for loss ratios 
     plt.figure(figsize=(12, 7))
     sns.barplot(x=loss_ratios.index, y=loss_ratios.values, palette="Reds_d",hue=loss_ratios.values)
     plt.title("Loss Ratio by Accident Year")
@@ -501,7 +501,7 @@ def visualize_loss_ratio(df):
     plt.ylabel("Loss Ratio")
     st.pyplot(plt)
 
-    # Bar chart for expected claims
+    # Bar chart for ultimate claims
     plt.figure(figsize=(10, 6))
     sns.barplot(x=expected_claims.index, y=expected_claims.values, palette="Purples_d",hue=expected_claims.values)
     plt.title("Ultimate Claims Amount by Accident Year (Loss Ratio Method)")
@@ -519,6 +519,16 @@ def visualize_loss_ratio(df):
     plt.xlabel("Accident Year")
     plt.ylabel("Amount")
     st.pyplot(plt)
+
+    # Create a new DataFrame to display
+    result_df = pd.DataFrame({
+        # 'Accident Year': df.accident_year,
+        'Ultimate Claims': expected_claims
+    })
+    # # Create a new column in the original DataFrame that maps the total earned premium to each accident year
+    # df['total_earned_premium'] = df['accident_year'].map(total_earned_premium)
+    st.write("Ultimate Claims Amount for each accident Year")
+    st.write(result_df)
 
 def prepare_summary_dataframes(triangle, df):
     # Calculate required components
