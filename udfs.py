@@ -520,11 +520,11 @@ def visualize_loss_ratio(df):
     plt.ylabel("Amount")
     st.pyplot(plt)
 
-    # Create a new DataFrame to display
-    result_df = pd.DataFrame({
-        # 'Accident Year': df.accident_year,
-        'Ultimate Claims': expected_claims
-    })
+    # # Create a new DataFrame to display
+    # result_df = pd.DataFrame({
+    #     # 'Accident Year': df.accident_year,
+    #     'Ultimate Claims': expected_claims
+    # })
     # # Create a new column in the original DataFrame that maps the total earned premium to each accident year
     # df['total_earned_premium'] = df['accident_year'].map(total_earned_premium)
     st.write("Ultimate Claims Amount for each accident Year")
