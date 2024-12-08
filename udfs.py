@@ -36,6 +36,27 @@ def calculate_derived_columns(df):
     return df
 
 # Define the function to calculate and plot ATAFs
+def calculate_and_plot_ataf_cumpaid(df):
+    df['next_year_cumpaid'] = df.groupby('accident_year')['cumpaid'].shift(-1)
+    df['ATAF'] = df['next_year_cumpaid'] / df['cumpaid']
+    df.drop(columns=['next_year_cumpaid'], inplace=True)
+    df['ATAF'] = df['ATAF'].replace([np.inf, -np.inf], np.nan)  # Replacing infinite values with NaN
+    
+    heatmap_data = df.pivot_table(values='ATAF', index='accident_year', columns='development_year', aggfunc='mean')
+    cmap = sns.diverging_palette(220, 20, sep=20, as_cmap=True)
+    norm = mcolors.Normalize(vmin=heatmap_data.min().min(), vmax=heatmap_data.max().max())
+
+    # Plotting the heatmap
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap=cmap, norm=norm,
+                cbar_kws={'label': 'Age-to-Age Factor'}, linewidths=.5, linecolor='black')
+    plt.title('Heatmap of Age-to-Age Factors (ATAFs) for Paid Claim Amounts')
+    plt.ylabel('Accident Year')
+    plt.xlabel('Development Year')
+    plt.tight_layout()  # Adjust layout to not cut off labels
+    st.pyplot(plt)
+    
+# Define the function to calculate and plot ATAFs
 def calculate_and_plot_ataf(df):
     df['next_year_incurred'] = df.groupby('accident_year')['incurred'].shift(-1)
     df['ATAF'] = df['next_year_incurred'] / df['incurred']
@@ -50,7 +71,7 @@ def calculate_and_plot_ataf(df):
     plt.figure(figsize=(12, 8))
     sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap=cmap, norm=norm,
                 cbar_kws={'label': 'Age-to-Age Factor'}, linewidths=.5, linecolor='black')
-    plt.title('Heatmap of Age-to-Age Factors (ATAFs) with Coolwarm Color Scaling')
+    plt.title('Heatmap of Age-to-Age Factors (ATAFs) for Incurred Claim Amounts')
     plt.ylabel('Accident Year')
     plt.xlabel('Development Year')
     plt.tight_layout()  # Adjust layout to not cut off labels
@@ -62,6 +83,15 @@ def calculate_ataf(df):
     df.drop(columns=['next_year_incurred'], inplace=True)
     df['ATAF'] = df['ATAF'].replace([np.inf, -np.inf], np.nan)  # Replacing infinite values with NaN
 
+def calculate_ataf_cumpaid(df):
+    df['next_year_cumpaid'] = df.groupby('accident_year')['cumpaid'].shift(-1)
+    df['ATAF'] = df['next_year_cumpaid'] / df['cumpaid']
+    df.drop(columns=['next_year_cumpaid'], inplace=True)
+    df['ATAF'] = df['ATAF'].replace([np.inf, -np.inf], np.nan)  # Replacing infinite values with NaN
+    
+def prepare_pivot_claim_atafs(df):
+    return df.pivot_table(values='ATAF', index='accident_year', columns='development_year', aggfunc='mean')
+    
 def prepare_pivot_atafs(df):
     return df.pivot_table(values='ATAF', index='accident_year', columns='development_year', aggfunc='mean')
 
@@ -323,11 +353,11 @@ def create_summary_table(pivot_atafs,df):
     return pd.DataFrame({
         'Simple Mean (10)': pivot_atafs['SMA_10'],
         'Volume Weighted (10)': pivot_atafs['VWA_10'],
-        'Geometric Mean (10)': pivot_atafs['GA_10'],
+        # 'Geometric Mean (10)': pivot_atafs['GA_10'],
         'Exponential Smoothing (10)': pivot_atafs['ESA_10'],
         'Median (10)': pivot_atafs['Median_10'],
-        'Trimmed Mean (10)': pivot_atafs['Trimmed_10'],
-        'Harmonic Mean (10)': pivot_atafs['Harmonic_10']
+        'Trimmed Mean (10)': pivot_atafs['Trimmed_10']
+        # 'Harmonic Mean (10)': pivot_atafs['Harmonic_10']
     })
 
 def visualize_heatmap(summary_table):
@@ -366,6 +396,9 @@ def visualize_boxplot(summary_table):
 
 def prepare_triangle(df):
     return df.pivot(index='accident_year', columns='development_year', values='incurred')
+
+def prepare_claim_triangle(df):
+    return df.pivot(index='accident_year', columns='development_year', values='cumpaid')
 
 # Chain-Ladder Method
 def visualize_chain_ladder(triangle):
@@ -472,7 +505,7 @@ def visualize_bf_method(triangle):
         'BF Reserves': bf_reserves
     })
     # Create the plot
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(15, 6))
     data_for_comparison.plot(kind='bar', stacked=True, ax=ax, color=['lightblue', 'salmon'])
     ax.set_title("Incurred Claims vs BF Reserves by Accident Year", fontsize=16)
     ax.set_xlabel("Accident Year", fontsize=12)
@@ -482,7 +515,7 @@ def visualize_bf_method(triangle):
     # Display the plot in Streamlit
     st.pyplot(fig)
 
-# Loss Ratio Method
+# Loss Ratio Method Incurred
 def visualize_loss_ratio(df):
     triangle = prepare_triangle(df)
     earned_premiums = df.pivot(index='accident_year', columns='development_year', values='earned_premium')
@@ -520,15 +553,166 @@ def visualize_loss_ratio(df):
     plt.ylabel("Amount")
     st.pyplot(plt)
 
-    # # Create a new DataFrame to display
-    # result_df = pd.DataFrame({
-    #     # 'Accident Year': df.accident_year,
-    #     'Ultimate Claims': expected_claims
-    # })
+    # Create a new DataFrame to display
+    result_df = pd.DataFrame({
+        # 'Accident Year': df.accident_year,
+        'Ultimate Claims': expected_claims
+    })
+    result_df.index.name = 'Accident Year'
     # # Create a new column in the original DataFrame that maps the total earned premium to each accident year
     # df['total_earned_premium'] = df['accident_year'].map(total_earned_premium)
     st.write("Ultimate Claims Amount for each accident Year")
     st.write(result_df)
+
+def visualize_claim_loss_ratio(df):
+    triangle = prepare_claim_triangle(df)
+    earned_premiums = df.pivot(index='accident_year', columns='development_year', values='earned_premium')
+
+    incurred_claims = triangle.sum(axis=1)
+    total_earned_premiums = earned_premiums.sum(axis=1)
+    loss_ratios = incurred_claims / total_earned_premiums
+    expected_claims = total_earned_premiums * loss_ratios
+    loss_ratio_reserves = expected_claims - incurred_claims
+
+    # Bar chart for loss ratios 
+    plt.figure(figsize=(12, 7))
+    sns.barplot(x=loss_ratios.index, y=loss_ratios.values, palette="Reds_d",hue=loss_ratios.values)
+    plt.title("Loss Ratio by Accident Year")
+    plt.xlabel("Accident Year")
+    plt.ylabel("Loss Ratio")
+    st.pyplot(plt)
+
+    # Bar chart for ultimate claims
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=expected_claims.index, y=expected_claims.values, palette="Purples_d",hue=expected_claims.values)
+    plt.title("Ultimate Claims Amount by Accident Year (Loss Ratio Method)")
+    plt.xlabel("Accident Year")
+    plt.ylabel("Expected Claims Amount")
+    st.pyplot(plt)
+
+    # Stacked bar chart for incurred claims vs reserves
+    data_for_comparison = pd.DataFrame({
+        'Paid Claims': incurred_claims,
+        'Loss Ratio Reserves': loss_ratio_reserves
+    })
+    data_for_comparison.plot(kind='bar', stacked=True, figsize=(10, 6), color=['lightcoral', 'gold'])
+    plt.title("Paid Claims vs Loss Ratio Reserves by Accident Year")
+    plt.xlabel("Accident Year")
+    plt.ylabel("Amount")
+    st.pyplot(plt)
+
+    # Create a new DataFrame to display
+    result_df = pd.DataFrame({
+        # 'Accident Year': df.accident_year,
+        'Ultimate Claims': expected_claims
+    })
+    result_df.index.name = 'Accident Year'
+    # # Create a new column in the original DataFrame that maps the total earned premium to each accident year
+    # df['total_earned_premium'] = df['accident_year'].map(total_earned_premium)
+    st.write("Ultimate Claims Amount for each accident Year")
+    st.write(result_df)
+
+def loss_ratio(df):
+    triangle = prepare_claim_triangle(df)
+    earned_premiums = df.pivot(index='accident_year', columns='development_year', values='earned_premium')
+
+    incurred_claims = triangle.sum(axis=1)
+    total_earned_premiums = earned_premiums.sum(axis=1)
+    loss_ratios = incurred_claims / total_earned_premiums
+    expected_claims = total_earned_premiums * loss_ratios
+    loss_ratio_reserves = expected_claims - incurred_claims
+    return expected_claims
+
+def loss_ratio_ibnr(df):
+    triangle = prepare_claim_triangle(df)
+    earned_premiums = df.pivot(index='accident_year', columns='development_year', values='earned_premium')
+
+    incurred_claims = triangle.sum(axis=1)
+    total_earned_premiums = earned_premiums.sum(axis=1)
+    loss_ratios = incurred_claims / total_earned_premiums
+    expected_claims = total_earned_premiums * loss_ratios
+    loss_ratio_reserves = expected_claims - incurred_claims
+    return loss_ratio_reserves
+
+def bf_method(triangle):
+    development_factors = []
+    for col in range(triangle.shape[1] - 1):
+        current_sum = triangle.iloc[:, col].sum()
+        next_sum = triangle.iloc[:, col + 1].sum()
+        factor = next_sum / current_sum if current_sum != 0 else 1
+        development_factors.append(factor)
+
+    projected_triangle = triangle.copy()
+    for col in range(1, projected_triangle.shape[1]):
+        for row in range(projected_triangle.shape[0]):
+            if pd.isna(projected_triangle.iloc[row, col]):
+                previous_value = projected_triangle.iloc[row, col - 1]
+                if not pd.isna(previous_value):
+                    projected_triangle.iloc[row, col] = previous_value * development_factors[col - 1]
+
+    bf_ultimate_claims = projected_triangle.sum(axis=1)
+    bf_reserves = (1 - (triangle.sum(axis=1) / bf_ultimate_claims)) * bf_ultimate_claims
+    return bf_ultimate_claims
+
+def bf_method_ibnr(triangle):
+    development_factors = []
+    for col in range(triangle.shape[1] - 1):
+        current_sum = triangle.iloc[:, col].sum()
+        next_sum = triangle.iloc[:, col + 1].sum()
+        factor = next_sum / current_sum if current_sum != 0 else 1
+        development_factors.append(factor)
+
+    projected_triangle = triangle.copy()
+    for col in range(1, projected_triangle.shape[1]):
+        for row in range(projected_triangle.shape[0]):
+            if pd.isna(projected_triangle.iloc[row, col]):
+                previous_value = projected_triangle.iloc[row, col - 1]
+                if not pd.isna(previous_value):
+                    projected_triangle.iloc[row, col] = previous_value * development_factors[col - 1]
+
+    bf_ultimate_claims = projected_triangle.sum(axis=1)
+    bf_reserves = (1 - (triangle.sum(axis=1) / bf_ultimate_claims)) * bf_ultimate_claims
+    return bf_reserves
+
+def chain_ladder(triangle):
+    development_factors = []
+    for col in range(triangle.shape[1] - 1):
+        current_sum = triangle.iloc[:, col].sum()
+        next_sum = triangle.iloc[:, col + 1].sum()
+        factor = next_sum / current_sum if current_sum != 0 else 1
+        development_factors.append(factor)
+
+    projected_triangle = triangle.copy()
+    for col in range(1, projected_triangle.shape[1]):
+        for row in range(projected_triangle.shape[0]):
+            if pd.isna(projected_triangle.iloc[row, col]):
+                previous_value = projected_triangle.iloc[row, col - 1]
+                if not pd.isna(previous_value):
+                    projected_triangle.iloc[row, col] = previous_value * development_factors[col - 1]
+
+    ibnr_reserve = projected_triangle.sum(axis=1) - triangle.sum(axis=1, min_count=1)
+    ultimate_claim_amount = projected_triangle.sum(axis=1)
+    return ultimate_claim_amount
+
+def chain_ladder_ibnr(triangle):
+    development_factors = []
+    for col in range(triangle.shape[1] - 1):
+        current_sum = triangle.iloc[:, col].sum()
+        next_sum = triangle.iloc[:, col + 1].sum()
+        factor = next_sum / current_sum if current_sum != 0 else 1
+        development_factors.append(factor)
+
+    projected_triangle = triangle.copy()
+    for col in range(1, projected_triangle.shape[1]):
+        for row in range(projected_triangle.shape[0]):
+            if pd.isna(projected_triangle.iloc[row, col]):
+                previous_value = projected_triangle.iloc[row, col - 1]
+                if not pd.isna(previous_value):
+                    projected_triangle.iloc[row, col] = previous_value * development_factors[col - 1]
+
+    ibnr_reserve = projected_triangle.sum(axis=1) - triangle.sum(axis=1, min_count=1)
+    ultimate_claim_amount = projected_triangle.sum(axis=1)
+    return ibnr_reserve
 
 def prepare_summary_dataframes(triangle, df):
     # Calculate required components
@@ -627,3 +811,12 @@ def plot_heatmap_triangle(data, title, cmap='coolwarm'):
     plt.xticks(rotation=45)
     plt.yticks(rotation=0)
     st.pyplot(plt)
+
+# Define a function to check weights and update session state
+def check_weights():
+    total = chain_value + bf_value + loss_value
+    tolerance = 0.01  # Define a small tolerance, e.g., 0.01 or 0.001
+    if abs(total - 1.0) <= tolerance:
+        st.session_state['weights_correct'] = True
+    else:
+        st.session_state['weights_correct'] = False
